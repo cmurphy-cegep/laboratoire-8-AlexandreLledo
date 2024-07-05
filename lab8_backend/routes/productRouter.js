@@ -75,12 +75,14 @@ router.get('/:id/image', (req, res, next) => {
 // On peut utiliser la propriété req.user pour obtenir les informations du compte authentifié.
 //
 // Au besoin, référez-vous au module listeDifussionRouter.js dans l'exemple de code du cours 19.
-router.post('/', (req, res, next) => {
+router.post('/',
+    passport.authenticate('basic', { session: false }),
+    (req, res, next) => {
         const user = req.user;
         const id = req.body.id;
 
-        if(!user || !user.isAdmin){
-            return next({ status: 403, message: "Droit administrateur requis"});
+        if (!user || !user.isAdmin) {
+            return next({ status: 403, message: "Droit administrateur requis" });
         }
         if (!id || id === '') {
             // Le return fait en sorte qu'on n'exécutera pas le reste de la fonction
@@ -116,12 +118,13 @@ router.post('/', (req, res, next) => {
 // Approche similaire que pour le POST ci-haut. La modification d'un produit
 // doit être refusée pour les comptes non-administrateurs (avec un statut HTTP 403).
 router.put('/:id',
+    passport.authenticate('basic', { session: false }),
     (req, res, next) => {
         const user = req.user;
         const id = req.params.id;
 
-        if(!user || !user.isAdmin){
-            return next({ status: 403, message: "Droit administrateur requis"});
+        if (!user || !user.isAdmin) {
+            return next({ status: 403, message: "Droit administrateur requis" });
         }
         if (!id || id === '') {
             return next(new HttpError(400, 'Le paramètre id est requis'));
@@ -158,12 +161,13 @@ router.put('/:id',
 // Approche similaire que pour le POST ci-haut. Le retrait d'un produit
 // doit être refusée pour les comptes non-administrateurs (avec un statut HTTP 403).
 router.delete('/:id',
+    passport.authenticate('basic', { session: false }),
     (req, res, next) => {
         const user = req.user;
         const id = req.params.id;
 
-        if(!user || !user.isAdmin){
-            return next({ status: 403, message: "Droit administrateur requis"});
+        if (!user || !user.isAdmin) {
+            return next({ status: 403, message: "Droit administrateur requis" });
         }
         if (!id || id === '') {
             return next(new HttpError(400, 'Le paramètre id est requis'));
@@ -185,6 +189,7 @@ router.delete('/:id',
 // Approche similaire que pour le POST ci-haut. Le changement d'image d'un produit
 // doit être refusé pour les comptes non-administrateurs (avec un statut HTTP 403).
 router.post('/:id/image',
+    passport.authenticate('basic', { session: false }),
     // Fonction middleware de multer pour gérer l'upload d'un fichier dans ce endpoint.
     // Cet appel de middleware doit venir après celui de l'authentification.
     upload.single('product-image'), // doit correspondre à l'id du champ dans le formulaire html
@@ -192,8 +197,8 @@ router.post('/:id/image',
         const id = req.params.id;
         const user = req.user;
 
-        if(!user || !user.isAdmin){
-            return next({ status: 403, message: "Droit administrateur requis"});
+        if (!user || !user.isAdmin) {
+            return next({ status: 403, message: "Droit administrateur requis" });
         }
         if (!id || id === '') {
             // Le return fait en sorte qu'on n'exécutera pas le reste de la fonction
