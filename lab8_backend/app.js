@@ -29,13 +29,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // des navigateurs est de présenter un dialogue demandant de s'authentifier. On veut
 // éviter cela, donc on ajoute un "x" au début.
 class BasicStrategyModified extends BasicStrategy {
-  constructor(options, verify) {
-    return super(options, verify);
-  }
+    constructor(options, verify) {
+        return super(options, verify);
+    }
 
-  _challenge() {
-    return 'xBasic realm="' + this._realm + '"';
-  }
+    _challenge() {
+        return 'xBasic realm="' + this._realm + '"';
+    }
 }
 
 
@@ -52,8 +52,38 @@ class BasicStrategyModified extends BasicStrategy {
 // en base64. La fonction de hachage cryptographique employée est sha512, avec 100000 itérations.
 // Référez-vous au app.js de l'exemple 1 du cours 19 pour voir la marche à suivre.
 
-// passport.use( ... à compléter ... );
+passport.use(new BasicStrategyModified((username, password, authResult) =>{
+    userAccountQueries.getLoginByUserAccountId(username).then(utilisateur => {
+        if(!utilisateur){
+            return authResult(null, false);
+        }
+        if(!utilisateur.isActive){
+            return authResult(null, false);
+        }
+        
+        const iterations = 100000;
+        const keylen = 64;
+        const digest = "sha512";
 
+        crypto.pbkdf2(password, utilisateur.passwordSalt, iterations, keylen, digest, (err, hashedPassword) => {
+            if (err) {
+              return authResult(err);
+            }
+
+            const utilisateurMdpHashBuffer = Buffer.from(utilisateur.passwordHash, "base64");
+    
+            if(!crypto.timingSafeEqual(utilisateurMdpHashBuffer, hashedPassword)){
+                authResult(null, false);
+            }
+
+            return authResult(null, utilisateur);
+        });
+
+    }).catch(err => {
+        return authResult(err);
+    });
+    
+}));
 
 app.use('/products', productRouter);
 app.use('/cart', cartRouter);
@@ -84,7 +114,23 @@ app.use('/orders', orderRouter);
 // comme Insomnia en activant l'authentification Basic et en entrant les informations
 // d'un compte utilisateur (p.ex. josbleau).
 
-// app.get('/login', ... à compléter ...);
+ app.get('/login',
+    passport.authenticate('basic', {session: false}),
+    (req, res, next) => {
+        if(req.user){
+            const userDetails = {
+                userAccount: req.user.userAccountId,
+                userFullName: req.user.userFullName,
+                isAdmin: req.user.isAdmin,
+                isActive: req.user.isActive
+            };
+            
+            res.json(userDetails);
+        }else{
+            return next({status: 500, message: "Propriété user absente"})
+        }
+    }
+ );
 
 
 // *** GESTION DES ERREURS ***
@@ -92,16 +138,16 @@ app.use('/orders', orderRouter);
 // Gestionnaire d'erreur, sera invoqué si on appelle next(...) en passant
 // un objet d'erreur.
 app.use((err, req, res, next) => {
-  console.log("error handler: ", err);
-  if (res.headersSent) {
-    return next(err);
-  }
-  res.status(err.status || 500)
-  if (err instanceof HttpError) {
-    res.json(err.getJsonMessage());
-  } else {
-    res.json(err);
-  }
+    console.log("error handler: ", err);
+    if (res.headersSent) {
+        return next(err);
+    }
+    res.status(err.status || 500)
+    if (err instanceof HttpError) {
+        res.json(err.getJsonMessage());
+    } else {
+        res.json(err);
+    }
 });
 
 module.exports = app;
