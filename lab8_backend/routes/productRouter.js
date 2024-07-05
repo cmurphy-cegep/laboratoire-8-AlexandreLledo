@@ -5,11 +5,10 @@ const router = express.Router();
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-router.use(passport.authenticate('basic', { session: false }));
-
 const HttpError = require("../HttpError");
-
+const passport = require('passport');
 const productQueries = require("../queries/ProductQueries");
+router.use(passport.authenticate('basic', { session: false }));
 
 // GET de la liste des produits
 // (Ne requiert pas d'authentification)
