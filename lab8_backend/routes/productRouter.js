@@ -5,7 +5,7 @@ const router = express.Router();
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-const passport = require('passport');
+router.use(passport.authenticate('basic', { session: false }));
 
 const HttpError = require("../HttpError");
 
@@ -76,9 +76,13 @@ router.get('/:id/image', (req, res, next) => {
 // On peut utiliser la propriété req.user pour obtenir les informations du compte authentifié.
 //
 // Au besoin, référez-vous au module listeDifussionRouter.js dans l'exemple de code du cours 19.
-router.post('/',
-    (req, res, next) => {
+router.post('/', (req, res, next) => {
+        const user = req.user;
         const id = req.body.id;
+
+        if(!user || !user.isAdmin){
+            return next({ status: 403, message: "Droit administrateur requis"});
+        }
         if (!id || id === '') {
             // Le return fait en sorte qu'on n'exécutera pas le reste de la fonction
             // après l'appel à next(...).
@@ -114,7 +118,12 @@ router.post('/',
 // doit être refusée pour les comptes non-administrateurs (avec un statut HTTP 403).
 router.put('/:id',
     (req, res, next) => {
+        const user = req.user;
         const id = req.params.id;
+
+        if(!user || !user.isAdmin){
+            return next({ status: 403, message: "Droit administrateur requis"});
+        }
         if (!id || id === '') {
             return next(new HttpError(400, 'Le paramètre id est requis'));
         }
@@ -151,7 +160,12 @@ router.put('/:id',
 // doit être refusée pour les comptes non-administrateurs (avec un statut HTTP 403).
 router.delete('/:id',
     (req, res, next) => {
+        const user = req.user;
         const id = req.params.id;
+
+        if(!user || !user.isAdmin){
+            return next({ status: 403, message: "Droit administrateur requis"});
+        }
         if (!id || id === '') {
             return next(new HttpError(400, 'Le paramètre id est requis'));
         }
@@ -177,6 +191,11 @@ router.post('/:id/image',
     upload.single('product-image'), // doit correspondre à l'id du champ dans le formulaire html
     (req, res, next) => {
         const id = req.params.id;
+        const user = req.user;
+
+        if(!user || !user.isAdmin){
+            return next({ status: 403, message: "Droit administrateur requis"});
+        }
         if (!id || id === '') {
             // Le return fait en sorte qu'on n'exécutera pas le reste de la fonction
             // après l'appel à next(...).
