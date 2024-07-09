@@ -4,17 +4,21 @@ const router = express.Router();
 const HttpError = require("../HttpError");
 
 const orderQueries = require("../queries/OrderQueries");
+const passport = require("passport");
 
 // ** Exercice 1.5 **
 // Active l'authentification pour toutes les routes (chemins d'URL) servis par cet 
 // objet routeur
-
+router.use(passport.authenticate('basic', {session: false}));
 // GET pour obtenir toutes les commandes
 // ** Exercice 1.5.1 **
 // Sécurisez adéquatement cette ressource afin que seuls les comptes administrateur puissent
 // y avoir accès. Toute autre tentative de la part d'un compte client normal doit être
 // refusée avec un statut HTTP 403 Forbidden.
 router.get('/', (req, res, next) => {
+    if (!req.user.isAdmin) {
+        return next({status: 403, message: "Droit administrateur requis"});
+    }
     orderQueries.getAllOrders().then(orders => {
         res.json(orders);
     }).catch(err => {
@@ -32,6 +36,11 @@ router.post('/', (req, res, next) => {
     // authentifié. Si ces deux valeurs ne correspondent pas, c'est que quelqu'un tente de passer
     // une commande avec le panier d'un autre client : on doit donc bloquer cette tentative en
     // retournant un statut HTTP 403 Forbidden !
+    const user = req.user.userId;
+    const paramUserId = req.params.userId;
+    if (user !== paramUserId) {
+        return next({status: 403, message: "Droit administrateur requis"});
+    }
 
     orderQueries.placeOrder(req.body).then(order => {
         res.json(order);

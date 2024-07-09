@@ -2,23 +2,31 @@ const express = require('express');
 const router = express.Router();
 
 const HttpError = require("../HttpError");
+const passport = require('passport');
 
 const productQueries = require("../queries/ProductQueries");
 const cartQueries = require("../queries/CartQueries");
 
 // ** Exercice 1.4 **
-// Activer l'authentification pour toutes les routes (chemins d'URL) servis par cet 
+// Activer l'authentification pour toutes les routes (chemins d'URL) servis par cet
 // objet routeur. On peut faire cela au niveau de l'objet router, car aucune route
 // gérée par celui-ci ne doit être accessible publiquement.
 // Référez-vous au besoin au module contactRouter.js dans les exemples du cours 19.
+router.use(passport.authenticate('basic', {session: false}));
 
+function verifierAccesUtilisateur(user, param) {
+    if (user.userId === param || user.isAdmin) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 router.get('/:userId', (req, res, next) => {
     try {
         if (!req.params.userId || req.params.userId === '') {
             throw new HttpError(400, "Le paramètre userId doit être spécifié");
         }
-
         // ** Exercice 1.4 **
         // Il faut valider si le compte authentifié essaie d'accéder à son propre panier.
         // Pour cela, on peut comparer l'identifiant du compte (req.user.userAccountId)
@@ -34,6 +42,10 @@ router.get('/:userId', (req, res, next) => {
         // Conseil: il peut s'avérer judicieux d'extraire la logique de validation pour l'autorisation
         // d'accès au panier dans une fonction à part, car la même logique s'appliquera pour les routes
         // PUT et DELETE liées au panier.
+
+        if (!verifierAccesUtilisateur(req.user, req.params.userId)) {
+            return next({status: 403, message: "Droit administrateur requis"});
+        }
 
 
         cartQueries.getCurrentCartByUserId(req.params.userId).then(cart => {
@@ -57,6 +69,10 @@ router.put('/:userId/:productId', (req, res, next) => {
         // La même logique d'autorisation que pour le GET d'un panier s'applique ici :
         // - Un utilisateur non-administrateur ne peut modifier que son propre panier
         // - Un utilisateur administrateur peut modifier n'importe quel panier
+
+        if (!verifierAccesUtilisateur(req.user, req.params.userId)) {
+            return next({status: 403, message: "Droit administrateur requis"});
+        }
 
         if (!req.params.productId || req.params.productId === '') {
             throw new HttpError(400, "Le paramètre productId doit être spécifié");
@@ -93,6 +109,10 @@ router.delete('/:userId/:productId', (req, res, next) => {
         // - Un utilisateur non-administrateur ne peut modifier que son propre panier
         // - Un utilisateur administrateur peut modifier n'importe quel panier
 
+        if (!verifierAccesUtilisateur(req.user, req.params.userId)) {
+            return next({status: 403, message: "Droit administrateur requis"});
+        }
+
         if (!req.params.productId || req.params.productId === '') {
             throw new HttpError(400, "Le paramètre productId doit être spécifié");
         }
@@ -122,6 +142,10 @@ router.delete('/:userId', (req, res, next) => {
         // La même logique d'autorisation que pour le GET d'un panier s'applique ici :
         // - Un utilisateur non-administrateur ne peut supprimer que son propre panier
         // - Un utilisateur administrateur peut supprimer n'importe quel panier
+
+        if (!verifierAccesUtilisateur(req.user, req.params.userId)) {
+            return next({status: 403, message: "Droit administrateur requis"});
+        }
 
         const userId = "" + req.params.userId;
 
