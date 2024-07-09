@@ -8,7 +8,6 @@ const upload = multer({ storage: storage });
 const HttpError = require("../HttpError");
 const passport = require('passport');
 const productQueries = require("../queries/ProductQueries");
-router.use(passport.authenticate('basic', { session: false }));
 
 // GET de la liste des produits
 // (Ne requiert pas d'authentification)
